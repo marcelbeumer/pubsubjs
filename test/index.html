@@ -1,0 +1,31 @@
+<!DOCTYPE "html">
+<html>
+    <head>
+        <script src="im.js"></script>
+        <script src="../src/pubsub.js"></script>
+        <script>
+            im(function(){
+                alert('hi');
+                
+                var b1 = im('.b1');
+                pubsub.main.register(b1.el(0), 'button1');
+                
+                b1.bind('click', function(e){
+                    pubsub.main.publish('button-clicked', {e : e}, this);
+                });
+                
+                var b2 = im('.b2');
+                pubsub.main.subsribe(null, pubsub.main.getFirstListing('button1'), function(key, topic, message){
+                    console.info('got message from ' + pubsub.main.listing[key].name  + ' (' + key + ') about ' + topic + ': ');
+                    console.dir(message);
+                });
+                
+            });
+        </script>
+    </head>
+    <body>
+        <strong class="b1">Button 1</strong>
+        <strong class="b2">Button 2</strong>
+        Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    </body>
+</html>
