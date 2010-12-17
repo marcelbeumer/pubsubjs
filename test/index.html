@@ -7,17 +7,22 @@
             im(function(){
                 alert('hi');
                 
-                var b1 = im('.b1');
-                pubsub.main.register(b1.el(0), 'button1');
-                
-                b1.bind('click', function(e){
-                    pubsub.main.publish('button-clicked', {e : e}, this);
-                });
+                (function(){
+                    var b1 = im('.b1');
+                    var key = pubsub.register('superwidget');
+
+                    b1.bind('click', function(e){
+                        pubsub.publish('clicked', {e : e}, key);
+                    });
+                    
+                })();
                 
                 var b2 = im('.b2');
-                pubsub.main.subsribe(null, pubsub.main.getFirstListing('button1'), function(key, topic, message){
-                    console.info('got message from ' + pubsub.main.listing[key].name  + ' (' + key + ') about ' + topic + ': ');
+                pubsub.subsribe({group : 'superwidget'}, function(header, message){
+                    
+                    console.info('got message from group ' + header.group  + ' (member key: ' + header.key + ') about ' + header.topic + ': ');
                     console.dir(message);
+                    
                 });
                 
             });

@@ -11,37 +11,30 @@
         
         self.listing = {};
         
-        self.register = function(obj, name) {
+        self.register = function(group) {
             keyc++;
             var privateKey = (+new Date) + '' + keyc + '' + Math.floor(Math.random()*1024);
             var publicKey = 'pubsubkey' + Math.floor(Math.random()*1024) + '' + keyc;
             
-            obj.__pubsub_private_key = privateKey;
             senders[privateKey] = publicKey;
-            self.listing[publicKey] = {name : name || 'anonymous'};
+            self.listing[publicKey] = {group : group || 'anonymous'};
             return privateKey;
         };
         
-        self.getListing = function(name) {
+        self.getListing = function(group) {
             var r = [];
             for (var key in self.listing) {
                 var l = self.listing[key];
-                if (l.name == name) r.push(key);
+                if (l.group == group) r.push(key);
             }
             return r;
         };
         
-        self.getFirstListing = function(name) {
-            for (var key in self.listing) {
-                var l = self.listing[key];
-                if (l.name == name) return key;
-            }
-        };
-        
-        self.publish = function(topic, message, sender) {
+        self.publish = function(topic, message, privateKey) {
             
-            if (sender && sender.__pubsub_private_key) sender = sender.__pubsub_private_key;
-            var publicKey = senders[sender];
+            var publicKey = senders[privateKey];
+            var group = publicKey ? self.listing[publicKey].group : undefined;
+            var header = {key : publicKey, group : group, topic : topic};
             
             var l = subscribers.length;
             var e = l;
@@ -49,17 +42,20 @@
                 var s = subscribers[l];
                 if (
                     (s.topic && s.topic != topic) ||
+                    (s.group && s.group != group) ||
                     (s.publicKey && s.publicKey != publicKey)
                 ) continue;
-                s.callback(publicKey, topic, message);
+                s.callback(header, message);
             }
         };
         
-        self.subsribe = function(topic, publicKey, callback) {
+        self.subsribe = function(options, callback) {
             if (!callback) return;
+            options = options || {};
             subscribers.push({
-                topic : topic || null,
-                publicKey : publicKey || null,
+                topic : options.topic || null,
+                name : options.group || null,
+                publicKey : options.publicKey || null,
                 callback : callback
             });
         };
@@ -68,9 +64,8 @@
     };
     
     var pubsub = function() {
-        var self = {}, shared = this === ctx ? {} : this;
+        var self = dispatcher();
         self.dispatcher = dispatcher;
-        self.main = dispatcher();
         return self;
     };
     
