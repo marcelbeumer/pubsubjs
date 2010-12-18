@@ -20,6 +20,10 @@
             self.listing[publicKey] = {group : group || 'anonymous'};
             return privateKey;
         };
+
+        self.anonymous = function(group) {
+            return {anonymous : true, group : group};
+        };
         
         self.getListing = function(group) {
             var r = [];
@@ -30,10 +34,18 @@
             return r;
         };
         
+        self.getPublicKey = function(privateKey) {
+            return senders[privateKey];
+        };
+        
         self.publish = function(topic, message, privateKey) {
             
-            var publicKey = senders[privateKey];
-            var group = publicKey ? self.listing[publicKey].group : undefined;
+            if (privateKey.anonymous) {
+                var group = privateKey.group, publicKey = null;
+            } else {
+                var publicKey = self.getPublicKey(privateKey);
+                var group = publicKey ? self.listing[publicKey].group : undefined;                
+            }
             var header = {key : publicKey, group : group, topic : topic};
             
             var l = subscribers.length;
@@ -43,19 +55,21 @@
                 if (
                     (s.topic && s.topic != topic) ||
                     (s.group && s.group != group) ||
-                    (s.publicKey && s.publicKey != publicKey)
+                    (s.anonymous === false && !publicKey) ||
+                    (s.key && s.key != publicKey)
                 ) continue;
                 s.callback(header, message);
             }
         };
         
-        self.subsribe = function(options, callback) {
+        self.subscribe = function(options, callback) {
             if (!callback) return;
             options = options || {};
             subscribers.push({
                 topic : options.topic || null,
-                name : options.group || null,
-                publicKey : options.publicKey || null,
+                group : options.group || null,
+                key : options.key || null,
+                anonymous : options.anonymous || false,
                 callback : callback
             });
         };
