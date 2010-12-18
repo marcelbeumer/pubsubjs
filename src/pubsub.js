@@ -1,9 +1,7 @@
 (function(ns){
     
-    var ctx = this;
-    
     var dispatcher = function() {
-        var self = {}, shared = this === ctx ? {} : this;
+        var self = {};
         
         var keyc = 0;
         var subscribers = [];
@@ -17,12 +15,12 @@
             var publicKey = 'pubsubkey' + Math.floor(Math.random()*1024) + '' + keyc;
             
             senders[privateKey] = publicKey;
-            self.listing[publicKey] = {group : group || 'anonymous'};
+            self.listing[publicKey] = {group : group || 'none'};
             return privateKey;
         };
 
         self.anonymous = function(group) {
-            return {anonymous : true, group : group};
+            return {noKey : true, group : group};
         };
         
         self.getListing = function(group) {
@@ -40,22 +38,18 @@
         
         self.publish = function(topic, message, privateKey) {
             
-            if (privateKey.anonymous) {
-                var group = privateKey.group, publicKey = null;
-            } else {
-                var publicKey = self.getPublicKey(privateKey);
-                var group = publicKey ? self.listing[publicKey].group : undefined;                
-            }
+            var noKey = privateKey.noKey, group = privateKey.group;
+            var publicKey = noKey ? undefined : self.getPublicKey(privateKey);
+            var group = group || (publicKey ? self.listing[publicKey].group : undefined);
             var header = {key : publicKey, group : group, topic : topic};
             
             var l = subscribers.length;
-            var e = l;
             while (l--) {
                 var s = subscribers[l];
                 if (
                     (s.topic && s.topic != topic) ||
                     (s.group && s.group != group) ||
-                    (s.anonymous === false && !publicKey) ||
+                    (!s.anonymous && !publicKey) ||
                     (s.key && s.key != publicKey)
                 ) continue;
                 s.callback(header, message);
@@ -65,13 +59,8 @@
         self.subscribe = function(options, callback) {
             if (!callback) return;
             options = options || {};
-            subscribers.push({
-                topic : options.topic || null,
-                group : options.group || null,
-                key : options.key || null,
-                anonymous : options.anonymous || false,
-                callback : callback
-            });
+            options.callback = callback;
+            subscribers.push(options);
         };
         
         return self;
